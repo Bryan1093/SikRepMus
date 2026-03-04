@@ -1,9 +1,6 @@
 package com.example.sikrepmus.presentation.ui.player
 
-import android.app.Service
-import android.content.Intent
-import android.os.Binder
-import android.os.IBinder
+import androidx.lifecycle.ViewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -11,10 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class MusicPlayerService : Service() {
+class PlayerViewModel(private val exoPlayer: ExoPlayer) : ViewModel() {
 
-    private var exoPlayer: ExoPlayer? = null
-    private val binder = MusicBinder()
+    private val _currentSong = MutableStateFlow<Any?>(null)
+    val currentSong: StateFlow<Any?> = _currentSong.asStateFlow()
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
@@ -25,65 +22,48 @@ class MusicPlayerService : Service() {
     private val _duration = MutableStateFlow(0L)
     val duration: StateFlow<Long> = _duration.asStateFlow()
 
-    inner class MusicBinder : Binder() {
-        fun getService(): MusicPlayerService = this@MusicPlayerService
-    }
+    init {
+        exoPlayer.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(playing: Boolean) {
+                _isPlaying.value = playing
+            }
 
-    override fun onBind(intent: Intent?): IBinder = binder
-
-    override fun onCreate() {
-        super.onCreate()
-        exoPlayer = ExoPlayer.Builder(this).build().apply {
-            addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(playing: Boolean) {
-                    _isPlaying.value = playing
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) {
+                    _duration.value = exoPlayer.duration
                 }
-
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_READY) {
-                        _duration.value = duration
-                    }
-                }
-            })
-        }
+            }
+        })
     }
 
     fun playPreview(url: String) {
-        exoPlayer?.apply {
+        exoPlayer.apply {
             setMediaItem(MediaItem.fromUri(url))
             prepare()
             play()
         }
     }
 
-    fun pause() {
-        exoPlayer?.pause()
-    }
-
-    fun resume() {
-        exoPlayer?.play()
+    fun togglePlayPause() {
+        if (exoPlayer.isPlaying) {
+            exoPlayer.pause()
+        } else {
+            exoPlayer.play()
+        }
     }
 
     fun stop() {
-        exoPlayer?.stop()
-        exoPlayer?.clearMediaItems()
+        exoPlayer.stop()
+        exoPlayer.clearMediaItems()
+        _currentPosition.value = 0L
     }
 
     fun seekTo(position: Long) {
-        exoPlayer?.seekTo(position)
+        exoPlayer.seekTo(position)
     }
 
-    fun getCurrentPosition(): Long {
-        return exoPlayer?.currentPosition ?: 0L
-    }
-
-    fun getDuration(): Long {
-        return exoPlayer?.duration ?: 0L
-    }
-
-    override fun onDestroy() {
-        exoPlayer?.release()
-        exoPlayer = null
-        super.onDestroy()
+    override fun onCleared() {
+        super.onCleared()
+        exoPlayer.release()
     }
 }

@@ -1,11 +1,10 @@
 package com.example.sikrepmus.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -13,229 +12,144 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.sikrepmus.data.model.SearchResult
-import com.example.sikrepmus.data.model.Song
+import com.example.sikrepmus.presentation.ui.components.MiniPlayer
+import com.example.sikrepmus.presentation.ui.player.PlayerViewModel
 import com.example.sikrepmus.presentation.ui.search.SearchViewModel
-import com.example.sikrepmus.ui.viewmodel.MusicViewModel
-import com.example.sikrepmus.util.toFormattedDuration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
-    viewModel: MusicViewModel,
-    onSongClick: (Song) -> Unit,
-    onMiniPlayerClick: () -> Unit,
-    onPlayPauseClick: () -> Unit,
-    searchViewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory())
+    viewModel: SearchViewModel = viewModel(),
+    playerViewModel: PlayerViewModel = viewModel()
 ) {
-    val localQuery by viewModel.searchQuery.collectAsState()
-    val songs by viewModel.songs.collectAsState()
-    val currentSong by viewModel.currentSong
-    val isPlaying by viewModel.isPlaying
+    val searchResults by viewModel.searchResults.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
-    val deezerQuery by searchViewModel.searchQuery.collectAsState()
-    val deezerResults by searchViewModel.searchResults.collectAsState()
-    val isLoading by searchViewModel.isLoading.collectAsState()
-    val error by searchViewModel.error.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
 
-    var isDeezerMode by remember { mutableStateOf(false) }
+    // Bind service para el reproductor
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        playerViewModel.bindService(context)
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0F0F0F))
-            .padding(16.dp)
-    ) {
-        // Mode toggle
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterChip(
-                selected = !isDeezerMode,
-                onClick = { isDeezerMode = false },
-                label = { Text("Local") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF1DB954),
-                    selectedLabelColor = Color.Black,
-                    containerColor = Color.White.copy(alpha = 0.05f),
-                    labelColor = Color.Gray
-                )
-            )
-            FilterChip(
-                selected = isDeezerMode,
-                onClick = { isDeezerMode = true },
-                label = { Text("Deezer") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF1DB954),
-                    selectedLabelColor = Color.Black,
-                    containerColor = Color.White.copy(alpha = 0.05f),
-                    labelColor = Color.Gray
-                )
-            )
+    DisposableEffect(Unit) {
+        onDispose {
+            playerViewModel.unbindService(context)
         }
+    }
 
-        if (isDeezerMode) {
-            // Deezer remote search
-            TextField(
-                value = deezerQuery,
-                onValueChange = { searchViewModel.onQueryChange(it) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                placeholder = { Text("Busca en Deezer...", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF1DB954)) },
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Search Music") }
+            )
+        },
+        bottomBar = {
+            MiniPlayer(viewModel = playerViewModel)
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            // Search field
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search for songs, artists...") },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                },
                 trailingIcon = {
-                    if (deezerQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchViewModel.clearSearch() }) {
-                            Icon(Icons.Default.Close, contentDescription = null, tint = Color.Gray)
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear")
                         }
                     }
                 },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                    unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                    disabledContainerColor = Color.White.copy(alpha = 0.05f),
-                    cursorColor = Color(0xFF1DB954),
-                    focusedIndicatorColor = Color(0xFF1DB954),
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search
                 ),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        if (searchQuery.isNotEmpty()) {
+                            viewModel.searchMusic(searchQuery)
+                        }
+                    }
+                )
             )
 
-            Box(modifier = Modifier.weight(1f)) {
-                when {
-                    deezerQuery.isEmpty() -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Busca canciones en Deezer", color = Color.Gray)
-                        }
-                    }
-                    isLoading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color(0xFF1DB954))
-                        }
-                    }
-                    error != null -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    "Error: $error",
-                                    color = Color.Red,
-                                    modifier = Modifier.padding(bottom = 8.dp)
-                                )
-                                Button(
-                                    onClick = { searchViewModel.searchMusic(deezerQuery) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1DB954))
-                                ) {
-                                    Text("Reintentar", color = Color.Black)
-                                }
-                            }
-                        }
-                    }
-                    deezerResults.isEmpty() -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                "No se encontraron resultados para \"$deezerQuery\"",
-                                color = Color.Gray
-                            )
-                        }
-                    }
-                    else -> {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(deezerResults) { result ->
-                                SearchResultCard(result = result)
-                            }
-                        }
-                    }
-                }
+            Spacer(modifier = Modifier.height(8.dp))
 
-                if (currentSong != null) {
-                    MiniPlayer(
-                        song = currentSong!!,
-                        isPlaying = isPlaying,
-                        onPlayPauseClick = onPlayPauseClick,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 8.dp)
-                            .clickable { onMiniPlayerClick() }
-                    )
-                }
+            Button(
+                onClick = {
+                    if (searchQuery.isNotEmpty()) {
+                        viewModel.searchMusic(searchQuery)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Search")
             }
-        } else {
-            // Local search (existing behavior)
-            TextField(
-                value = localQuery,
-                onValueChange = { viewModel.onSearchQueryChange(it) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                placeholder = { Text("Busca canciones, artistas o álbumes...", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF1DB954)) },
-                trailingIcon = {
-                    if (localQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Close, contentDescription = null, tint = Color.Gray)
-                        }
-                    }
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                    unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                    disabledContainerColor = Color.White.copy(alpha = 0.05f),
-                    cursorColor = Color(0xFF1DB954),
-                    focusedIndicatorColor = Color(0xFF1DB954),
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                ),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
 
-            Box(modifier = Modifier.weight(1f)) {
-                if (songs.isEmpty() && localQuery.isNotEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No se encontraron resultados para \"$localQuery\"", color = Color.Gray)
-                    }
-                } else if (localQuery.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Empieza a escribir para buscar", color = Color.Gray)
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(songs) { song ->
-                            SongItem(
-                                song = song,
-                                isSelected = song.id == currentSong?.id,
-                                onClick = { onSongClick(song) }
-                            )
-                        }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Results
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
 
-                if (currentSong != null) {
-                    MiniPlayer(
-                        song = currentSong!!,
-                        isPlaying = isPlaying,
-                        onPlayPauseClick = onPlayPauseClick,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 8.dp)
-                            .clickable { onMiniPlayerClick() }
+                errorMessage != null -> {
+                    Text(
+                        text = "Error: $errorMessage",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                }
+
+                searchResults.isEmpty() && !isLoading -> {
+                    Text(
+                        text = "No results found. Try searching for an artist or song.",
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(searchResults.size) { index ->
+                            val result = searchResults[index]
+                            SearchResultCard(
+                                result = result,
+                                onClick = {
+                                    // Reproducir preview
+                                    playerViewModel.playPreview(result)
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -243,37 +157,63 @@ fun SearchScreen(
 }
 
 @Composable
-fun SearchResultCard(result: SearchResult) {
-    ListItem(
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        headlineContent = {
-            Text(result.title, maxLines = 1, color = Color.White, fontWeight = FontWeight.Bold)
-        },
-        supportingContent = {
-            Text(
-                "${result.artist} • ${result.album}",
-                maxLines = 1,
-                color = Color.Gray,
-                fontSize = 12.sp
-            )
-        },
-        trailingContent = {
-            Text(
-                result.duration.toFormattedDuration(),
-                color = Color.Gray,
-                fontSize = 12.sp
-            )
-        },
-        leadingContent = {
+fun SearchResultCard(
+    result: SearchResult,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Cover image
             AsyncImage(
                 model = result.coverUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
+                contentDescription = "Album cover",
+                modifier = Modifier.size(64.dp)
             )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Song info
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = result.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = result.artist,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = "${result.album} • ${formatDuration(result.duration)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
-    )
-    HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+    }
+}
+
+private fun formatDuration(seconds: Int): String {
+    val minutes = seconds / 60
+    val secs = seconds % 60
+    return String.format("%d:%02d", minutes, secs)
 }
