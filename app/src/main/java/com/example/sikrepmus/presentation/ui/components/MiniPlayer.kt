@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.sikrepmus.presentation.ui.search.player.PlayerViewModel
+import com.example.sikrepmus.presentation.ui.player.PlayerViewModel
 
 @Composable
 fun MiniPlayer(

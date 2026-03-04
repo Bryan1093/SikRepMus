@@ -1,4 +1,4 @@
-package com.example.sikrepmus.presentation.ui.search.player
+package com.example.sikrepmus.presentation.ui.player
 
 import android.app.Service
 import android.content.Intent
