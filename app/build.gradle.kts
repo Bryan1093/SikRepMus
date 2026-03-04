@@ -72,7 +72,7 @@ dependencies {
     implementation(libs.androidx.media3.ui)
 
     // Coil (Image Loading)
-    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     // Retrofit & OkHttp
     implementation(libs.retrofit)

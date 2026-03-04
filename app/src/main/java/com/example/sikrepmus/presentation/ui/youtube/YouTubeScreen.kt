@@ -45,7 +45,7 @@ fun YouTubeScreen(
                 Icon(Icons.Default.Search, contentDescription = "Buscar")
             },
             singleLine = true,
-            colors = TextFieldDefaults.outlinedTextFieldColors()
+            colors = OutlinedTextFieldDefaults.colors()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
