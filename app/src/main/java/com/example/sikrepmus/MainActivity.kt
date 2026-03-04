@@ -32,7 +32,6 @@ import com.example.sikrepmus.data.local.AppDatabase
 import com.example.sikrepmus.data.repository.MusicRepository
 import com.example.sikrepmus.ui.theme.SikRepMusTheme
 import com.example.sikrepmus.ui.viewmodel.MusicViewModel
-import com.example.sikrepmus.presentation.ui.soundcloud.SoundCloudScreen
 import com.example.sikrepmus.ui.screens.*
 
 class MainActivity : ComponentActivity() {
@@ -209,8 +208,7 @@ class MainActivity : ComponentActivity() {
                                 )
                                 1 -> CenterText("Ecualizador Próximamente")
                                 2 -> SearchScreen()
-                                3 -> SoundCloudScreen()
-                                4 -> SettingsScreen(
+                                3 -> SettingsScreen(
                                     viewModel = viewModel,
                                     onAddFolderClick = { folderLauncher.launch(null) }
                                 )

@@ -38,6 +38,4 @@ object RetrofitClient {
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
-
-    val soundCloudApi: SoundCloudApi = soundCloudRetrofit.create(SoundCloudApi::class.java)
 }
