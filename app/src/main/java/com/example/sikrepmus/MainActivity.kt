@@ -35,6 +35,8 @@ import com.example.sikrepmus.ui.screens.*
 import com.example.sikrepmus.presentation.ui.youtube.YouTubeScreen
 import com.example.sikrepmus.presentation.viewmodel.YouTubeViewModel
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.runtime.rememberCoroutineScoperememberCoroutineScope
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -212,14 +214,43 @@ class MainActivity : ComponentActivity() {
                                 2 -> SearchScreen()
                                 3 -> {
                                     val youtubeViewModel: YouTubeViewModel = viewModel()
+                                    val scope = rememberCoroutineScope()
+
                                     YouTubeScreen(
                                         viewModel = youtubeViewModel,
                                         onPlayTrack = { result ->
-                                            Toast.makeText(
-                                                this@MainActivity,
-                                                "Reproduciendo: ${result.title}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            scope.launch {
+                                                // Mostrar loading
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Obteniendo audio...",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+
+                                                // Obtener URL de audio
+                                                val streamUrl = youtubeViewModel.getStreamUrl(result.id)
+
+                                                if (streamUrl != null) {
+                                                    // Reproducir con tu ExoPlayer existente
+                                                    viewModel.playFromUrl(
+                                                        url = streamUrl,
+                                                        title = result.title,
+                                                        artist = result.artist
+                                                    )
+
+                                                    Toast.makeText(
+                                                        this@MainActivity,
+                                                        "Reproduciendo: ${result.title}",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                } else {
+                                                    Toast.makeText(
+                                                        this@MainActivity,
+                                                        "Error al obtener audio",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
                                         }
                                     )
                                 }

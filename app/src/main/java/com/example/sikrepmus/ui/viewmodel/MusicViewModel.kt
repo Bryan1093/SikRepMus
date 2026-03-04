@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -231,6 +232,48 @@ class MusicViewModel(
                 return MusicViewModel(repository, folderDao) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
+
+    fun playFromUrl(url: String, title: String, artist: String) {
+        viewModelScope.launch {
+            try {
+                // Detener reproducción actual
+                mediaController?.stop()
+
+                // Crear MediaItem desde URL
+                val mediaItem = MediaItem.Builder()
+                    .setUri(url)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(title)
+                            .setArtist(artist)
+                            .build()
+                    )
+                    .build()
+
+                // Reproducir
+                mediaController?.apply {
+                    setMediaItem(mediaItem)
+                    prepare()
+                    play()
+                }
+
+                // Actualizar estado (opcional, para mostrar en UI)
+                _currentSong.value = Song(
+                    id = 0,
+                    title = title,
+                    artist = artist,
+                    album = "YouTube",
+                    path = url,
+                    duration = 0,
+                    albumArt = null
+                )
+                _isPlaying.value = true
+
+            } catch (e: Exception) {
+                Log.e("MusicViewModel", "Error playing from URL: ${e.message}", e)
+            }
         }
     }
 }
