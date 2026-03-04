@@ -1,21 +1,27 @@
 package com.example.sikrepmus.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
@@ -45,93 +51,100 @@ fun NowPlayingScreen(
     
     var showMenu by remember { mutableStateOf(false) }
 
+    // Background animation or dynamic gradient could go here
+    val infiniteTransition = rememberInfiniteTransition(label = "bg")
+    val bgOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(20000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "offset"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1DB954).copy(alpha = 0.3f), Color(0xFF0F0F0F))
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.background
+                    )
                 )
             )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().statusBarsPadding(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onClose) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.White)
+                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(32.dp))
                 }
                 Text(
-                    "REPRODUCIENDO",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
+                    "SikRep Mus",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    )
                 )
                 Box {
                     IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.White)
+                        Icon(Icons.Rounded.MoreVert, contentDescription = null)
                     }
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false },
-                        modifier = Modifier.background(Color(0xFF1A1A1A))
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Información", color = Color.White) },
+                            text = { Text("Información") },
+                            leadingIcon = { Icon(Icons.Rounded.Info, contentDescription = null) },
                             onClick = { showMenu = false; onOptionClick("Info") }
                         )
                         DropdownMenuItem(
-                            text = { Text("Letra", color = Color.White) },
+                            text = { Text("Letra") },
+                            leadingIcon = { Icon(Icons.Rounded.Description, contentDescription = null) },
                             onClick = { showMenu = false; onOptionClick("Lyrics") }
                         )
-                        Divider(color = Color.Gray.copy(alpha = 0.2f))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         DropdownMenuItem(
-                            text = { Text("Ir a Artista", color = Color.White) },
-                            onClick = { showMenu = false; onOptionClick("Artist") }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Ir a Álbum", color = Color.White) },
-                            onClick = { showMenu = false; onOptionClick("Album") }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Ir a Carpeta", color = Color.White) },
-                            onClick = { showMenu = false; onOptionClick("Folder") }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Ir a Género", color = Color.White) },
-                            onClick = { showMenu = false; onOptionClick("Genre") }
-                        )
-                        Divider(color = Color.Gray.copy(alpha = 0.2f))
-                        DropdownMenuItem(
-                            text = { Text("Eliminar", color = Color.Red) },
+                            text = { Text("Eliminar", color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Rounded.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                             onClick = { showMenu = false; onOptionClick("Delete") }
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.weight(0.1f))
 
-            // Album Art
+            // Album Art with Shadow and Scale Animation
+            val albumScale by animateFloatAsState(
+                targetValue = if (isPlaying) 1f else 0.85f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "albumScale"
+            )
+
             Surface(
                 modifier = Modifier
                     .aspectRatio(1f)
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(12.dp)
+                    .graphicsLayer(scaleX = albumScale, scaleY = albumScale),
                 shape = RoundedCornerShape(24.dp),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = Brush.linearGradient(listOf(Color(0xFF1DB954), Color(0xFF19E68C)))
-                ),
-                tonalElevation = 8.dp
+                shadowElevation = 20.dp,
+                tonalElevation = 4.dp
             ) {
                 AsyncImage(
                     model = song.albumArtUri,
@@ -141,112 +154,123 @@ fun NowPlayingScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.weight(0.1f))
 
             // Song Info
-            Text(
-                text = song.title,
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-            Text(
-                text = song.artist,
-                color = Color(0xFF1DB954),
-                fontSize = 18.sp,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Shuffle and Repeat Controls
+            // Progress Bar
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Slider(
+                    value = if (totalDuration > 0) displayPosition.toFloat() / totalDuration else 0f,
+                    onValueChange = { 
+                        isDragging = true
+                        dragPosition = (it * totalDuration).toLong()
+                    },
+                    onValueChangeFinished = {
+                        onSeek(dragPosition)
+                        isDragging = false
+                    },
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    )
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        formatTime(displayPosition), 
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        formatTime(totalDuration), 
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(0.1f))
+
+            // Primary Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onShuffleClick) {
                     Icon(
-                        imageVector = Icons.Default.Shuffle,
+                        imageVector = Icons.Rounded.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (isShuffleEnabled) Color(0xFF1DB954) else Color.White.copy(alpha = 0.5f)
+                        tint = if (isShuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(28.dp)
                     )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onPreviousClick, modifier = Modifier.size(64.dp)) {
+                        Icon(Icons.Rounded.SkipPrevious, contentDescription = null, modifier = Modifier.size(42.dp))
+                    }
+                    
+                    Surface(
+                        onClick = onPlayPauseClick,
+                        modifier = Modifier.size(80.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        shadowElevation = 8.dp
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = onNextClick, modifier = Modifier.size(64.dp)) {
+                        Icon(Icons.Rounded.SkipNext, contentDescription = null, modifier = Modifier.size(42.dp))
+                    }
                 }
 
                 IconButton(onClick = onRepeatClick) {
                     val icon = when (repeatMode) {
-                        Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
-                        Player.REPEAT_MODE_ALL -> Icons.Default.Repeat
-                        else -> Icons.Default.Repeat
+                        Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
+                        Player.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
+                        else -> Icons.Rounded.Repeat
                     }
-                    val tint = if (repeatMode != Player.REPEAT_MODE_OFF) Color(0xFF1DB954) else Color.White.copy(alpha = 0.5f)
-                    Icon(imageVector = icon, contentDescription = "Repeat", tint = tint)
-                }
-            }
-
-            // Progress Bar
-            Slider(
-                value = if (totalDuration > 0) displayPosition.toFloat() / totalDuration else 0f,
-                onValueChange = { 
-                    isDragging = true
-                    dragPosition = (it * totalDuration).toLong()
-                },
-                onValueChangeFinished = {
-                    onSeek(dragPosition)
-                    isDragging = false
-                },
-                colors = SliderDefaults.colors(
-                    thumbColor = Color(0xFF1DB954),
-                    activeTrackColor = Color(0xFF1DB954),
-                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
-                )
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(formatTime(displayPosition), color = Color.Gray, fontSize = 12.sp)
-                Text(formatTime(totalDuration), color = Color.Gray, fontSize = 12.sp)
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onPreviousClick, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
-                }
-                
-                Surface(
-                    onClick = onPlayPauseClick,
-                    modifier = Modifier.size(72.dp),
-                    shape = CircleShape,
-                    color = Color.White
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = Color.Black,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
-
-                IconButton(onClick = onNextClick, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.SkipNext, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                    val tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    Icon(imageVector = icon, contentDescription = "Repeat", tint = tint, modifier = Modifier.size(28.dp))
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp).navigationBarsPadding())
         }
     }
 }

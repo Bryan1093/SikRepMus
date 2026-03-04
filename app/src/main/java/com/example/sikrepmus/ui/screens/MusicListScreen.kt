@@ -1,6 +1,7 @@
 package com.example.sikrepmus.ui.screens
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -13,26 +14,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.sikrepmus.data.model.Song
+import com.example.sikrepmus.ui.theme.SurfaceGrey
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,25 +59,33 @@ fun MusicListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Todas las canciones", color = Color.White) },
+                title = { 
+                    Text(
+                        "SikRep Mus", 
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black)
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         },
-        containerColor = Color(0xFF0F0F0F)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             Row(modifier = Modifier.fillMaxSize()) {
-                // Barra lateral alfabética con efecto de lupa (Poweramp Style)
+                // Alphabet Sidebar
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .width(32.dp)
-                        .background(Color.Black.copy(alpha = 0.5f))
+                        .width(28.dp)
+                        .padding(vertical = 8.dp)
                         .onGloballyPositioned { columnHeight = it.size.height.toFloat() }
                         .pointerInput(songs) {
                             detectDragGestures(
@@ -100,7 +110,6 @@ fun MusicListScreen(
                                 val letter = getLetterFromOffset(offset.y, columnHeight, alphabet)
                                 activeLetter = letter
                                 scrollToLetter(letter, songs, listState, scope)
-                                // Pequeño delay para el efecto visual antes de limpiar
                                 scope.launch {
                                     kotlinx.coroutines.delay(200)
                                     activeLetter = null
@@ -115,17 +124,20 @@ fun MusicListScreen(
                     ) {
                         alphabet.forEach { char ->
                             val isSelected = activeLetter == char
-                            val scale by animateFloatAsState(if (isSelected) 2f else 1f, label = "scale")
-                            val color = if (isSelected) Color.White else Color(0xFF1DB954)
-                            val weight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold
+                            val scale by animateFloatAsState(
+                                targetValue = if (isSelected) 2.5f else 1f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                label = "scale"
+                            )
+                            val color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
 
                             Text(
                                 text = char.toString(),
                                 color = color,
-                                fontSize = 10.sp,
-                                fontWeight = weight,
+                                fontSize = 9.sp,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
                                 modifier = Modifier
-                                    .scale(scale)
+                                    .graphicsLayer(scaleX = scale, scaleY = scale)
                                     .fillMaxWidth(),
                                 textAlign = TextAlign.Center
                             )
@@ -135,15 +147,15 @@ fun MusicListScreen(
 
                 if (songs.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No hay música en estas carpetas.", color = Color.Gray)
+                        Text("No hay música disponible", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = 100.dp)
+                        contentPadding = PaddingValues(bottom = 100.dp, end = 8.dp)
                     ) {
-                        items(songs) { song ->
+                        items(songs, key = { it.id }) { song ->
                             SongItem(
                                 song = song, 
                                 isSelected = song.id == currentSong?.id,
@@ -154,34 +166,47 @@ fun MusicListScreen(
                 }
             }
 
-            // Indicador flotante central (Lupa de letra)
-            if (activeLetter != null) {
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .align(Alignment.Center)
-                        .background(Color(0xFF1DB954).copy(alpha = 0.8f), CircleShape),
-                    contentAlignment = Alignment.Center
+            // Floating Letter Indicator
+            AnimatedVisibility(
+                visible = activeLetter != null,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut(),
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                Surface(
+                    modifier = Modifier.size(90.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                    shadowElevation = 12.dp
                 ) {
-                    Text(
-                        text = activeLetter.toString(),
-                        color = Color.Black,
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.Black
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = activeLetter?.toString() ?: "",
+                            color = Color.Black,
+                            fontSize = 42.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
                 }
             }
 
-            if (currentSong != null) {
-                MiniPlayer(
-                    song = currentSong,
-                    isPlaying = isPlaying,
-                    onPlayPauseClick = onPlayPauseClick,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp)
-                        .clickable { onMiniPlayerClick() }
-                )
+            // Mini Player with animation
+            AnimatedVisibility(
+                visible = currentSong != null,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+            ) {
+                if (currentSong != null) {
+                    MiniPlayer(
+                        song = currentSong,
+                        isPlaying = isPlaying,
+                        onPlayPauseClick = onPlayPauseClick,
+                        modifier = Modifier.clickable { onMiniPlayerClick() }
+                    )
+                }
             }
         }
     }
@@ -208,38 +233,71 @@ private fun scrollToLetter(char: Char?, songs: List<Song>, listState: androidx.c
     }
     if (index >= 0) {
         scope.launch {
-            listState.scrollToItem(index)
+            listState.animateScrollToItem(index)
         }
     }
 }
 
 @Composable
 fun SongItem(song: Song, isSelected: Boolean, onClick: () -> Unit) {
-    val backgroundColor = if (isSelected) Color(0xFF1DB954).copy(alpha = 0.1f) else Color.Transparent
+    val backgroundColor by animateColorAsState(
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f) 
+        else Color.Transparent, label = "bgColor"
+    )
     
-    ListItem(
-        colors = ListItemDefaults.colors(containerColor = backgroundColor),
-        headlineContent = { 
-            Text(
-                song.title, 
-                maxLines = 1, 
-                color = if (isSelected) Color(0xFF1DB954) else Color.White,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-            ) 
-        },
-        supportingContent = { Text("${song.artist} • ${song.album}", maxLines = 1, color = Color.Gray) },
-        leadingContent = {
+    Surface(
+        color = backgroundColor,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(vertical = 8.dp, horizontal = 12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             AsyncImage(
                 model = song.albumArtUri,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(SurfaceGrey),
                 contentScale = ContentScale.Crop
             )
-        },
-        modifier = Modifier.clickable { onClick() }
-    )
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${song.artist} • ${song.album}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            IconButton(onClick = { /* Menú de opciones */ }) {
+                Icon(
+                    Icons.Rounded.MoreVert, 
+                    contentDescription = null, 
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -252,61 +310,77 @@ fun MiniPlayer(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(72.dp),
-        color = Color.Black.copy(alpha = 0.9f),
-        shape = RoundedCornerShape(20.dp),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = Brush.linearGradient(listOf(Color(0xFF1DB954), Color(0xFF19E68C)))
-        )
+            .height(76.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 8.dp,
+        shadowElevation = 8.dp
     ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 12.dp)
-                .fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(
-                model = song.albumArtUri,
-                contentDescription = null,
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-            
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp)
+                    .padding(horizontal = 12.dp)
+                    .fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    song.title,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Text(
-                    song.artist,
-                    color = Color.Gray,
-                    fontSize = 12.sp,
-                    maxLines = 1
-                )
-            }
-
-            IconButton(
-                onClick = onPlayPauseClick,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        Brush.linearGradient(listOf(Color(0xFF1DB954), Color(0xFF19E68C))),
-                        CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                AsyncImage(
+                    model = song.albumArtUri,
                     contentDescription = null,
-                    tint = Color.Black
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(10.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        song.title,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        song.artist,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                IconButton(
+                    onClick = onPlayPauseClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            
+            // Linear Progress bar at the bottom
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.35f) // Static placeholder
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.primary)
                 )
             }
         }

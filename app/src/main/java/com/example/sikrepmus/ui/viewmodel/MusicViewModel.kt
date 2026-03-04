@@ -91,8 +91,23 @@ class MusicViewModel(
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     val songId = mediaItem?.mediaId?.toLongOrNull()
-                    val song = songs.value.find { it.id == songId }
-                    currentSong.value = song
+                    val songFromList = songs.value.find { it.id == songId }
+                    
+                    if (songFromList != null) {
+                        currentSong.value = songFromList
+                    } else if (mediaItem != null) {
+                        // For streams/YouTube items that aren't in the database
+                        val metadata = mediaItem.mediaMetadata
+                        currentSong.value = Song(
+                            id = 0,
+                            title = metadata.title?.toString() ?: "Unknown",
+                            artist = metadata.artist?.toString() ?: "Unknown",
+                            album = "Streaming",
+                            duration = 0,
+                            contentUri = mediaItem.localConfiguration?.uri ?: Uri.EMPTY,
+                            albumArtUri = metadata.artworkUri
+                        )
+                    }
                     updateDuration()
                 }
                 
@@ -161,12 +176,18 @@ class MusicViewModel(
     fun playSong(song: Song) {
         val controller = mediaController ?: return
         
-        // Add all songs to the playlist if not already there, or just the selected one
-        // For a better experience, we should ideally set the whole list as a playlist
         val mediaItems = songs.value.map { 
             MediaItem.Builder()
                 .setMediaId(it.id.toString())
                 .setUri(it.contentUri)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(it.title)
+                        .setArtist(it.artist)
+                        .setAlbumTitle(it.album)
+                        .setArtworkUri(it.albumArtUri)
+                        .build()
+                )
                 .build()
         }
         
@@ -236,31 +257,30 @@ class MusicViewModel(
         }
     }
 
-    fun playFromUrl(url: String, title: String, artist: String) {
+    fun playFromUrl(url: String, title: String, artist: String, albumArtUrl: String? = null) {
         viewModelScope.launch {
             try {
-                // Detener reproducción actual
                 mediaController?.stop()
 
-                // Crear MediaItem desde URL
+                val artworkUri = albumArtUrl?.let { Uri.parse(it) }
+                
                 val mediaItem = MediaItem.Builder()
                     .setUri(url)
                     .setMediaMetadata(
                         MediaMetadata.Builder()
                             .setTitle(title)
                             .setArtist(artist)
+                            .setArtworkUri(artworkUri)
                             .build()
                     )
                     .build()
 
-                // Reproducir
                 mediaController?.apply {
                     setMediaItem(mediaItem)
                     prepare()
                     play()
                 }
 
-                // Actualizar estado (opcional, para mostrar en UI)
                 currentSong.value = Song(
                     id = 0,
                     title = title,
@@ -268,7 +288,8 @@ class MusicViewModel(
                     album = "YouTube",
                     path = url,
                     duration = 0,
-                    contentUri = Uri.parse(url)
+                    contentUri = Uri.parse(url),
+                    albumArtUri = artworkUri
                 )
                 isPlaying.value = true
 

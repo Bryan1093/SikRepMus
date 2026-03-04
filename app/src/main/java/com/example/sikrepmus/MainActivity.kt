@@ -234,7 +234,8 @@ class MainActivity : ComponentActivity() {
                                                     viewModel.playFromUrl(
                                                         url = streamUrl,
                                                         title = result.title,
-                                                        artist = result.artist
+                                                        artist = result.artist,
+                                                        albumArtUrl = result.thumbnailUrl
                                                     )
 
                                                     Toast.makeText(
