@@ -32,4 +32,12 @@ object RetrofitClient {
         .build()
 
     val deezerApi: DeezerApi = retrofit.create(DeezerApi::class.java)
+
+    private val soundCloudRetrofit = Retrofit.Builder()
+        .baseUrl(Constants.SOUNDCLOUD_BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    val soundCloudApi: SoundCloudApi = soundCloudRetrofit.create(SoundCloudApi::class.java)
 }
