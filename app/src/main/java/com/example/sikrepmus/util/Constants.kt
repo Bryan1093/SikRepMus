@@ -3,6 +3,9 @@ package com.example.sikrepmus.util
 object Constants {
     // API URLs
     const val DEEZER_BASE_URL = "https://api.deezer.com/"
+    const val SOUNDCLOUD_BASE_URL = "https://api-v2.soundcloud.com/"
+    // Replace with your SoundCloud Client ID from https://soundcloud.com/you/apps
+    const val SOUNDCLOUD_CLIENT_ID = "YOUR_SOUNDCLOUD_CLIENT_ID"
 
     // Permissions
     const val PERMISSION_READ_AUDIO = android.Manifest.permission.READ_MEDIA_AUDIO
