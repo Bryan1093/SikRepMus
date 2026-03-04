@@ -32,6 +32,9 @@ import com.example.sikrepmus.data.repository.MusicRepository
 import com.example.sikrepmus.ui.theme.SikRepMusTheme
 import com.example.sikrepmus.ui.viewmodel.MusicViewModel
 import com.example.sikrepmus.ui.screens.*
+import com.example.sikrepmus.presentation.ui.youtube.YouTubeScreen
+import com.example.sikrepmus.presentation.viewmodel.YouTubeViewModel
+import androidx.compose.material.icons.filled.VideoLibrary
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -180,6 +183,12 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = selectedTab == 3,
                                     onClick = { selectedTab = 3 },
+                                    icon = { Icon(Icons.Default.VideoLibrary, contentDescription = null) },
+                                    label = { Text("YouTube") }
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == 4,
+                                    onClick = { selectedTab = 4 },
                                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                                     label = { Text("Ajustes") }
                                 )
@@ -201,7 +210,20 @@ class MainActivity : ComponentActivity() {
                                 )
                                 1 -> CenterText("Ecualizador Próximamente")
                                 2 -> SearchScreen()
-                                3 -> SettingsScreen(
+                                3 -> {
+                                    val youtubeViewModel: YouTubeViewModel = viewModel()
+                                    YouTubeScreen(
+                                        viewModel = youtubeViewModel,
+                                        onPlayTrack = { result ->
+                                            Toast.makeText(
+                                                this@MainActivity,
+                                                "Reproduciendo: ${result.title}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    )
+                                }
+                                4 -> SettingsScreen(
                                     viewModel = viewModel,
                                     onAddFolderClick = { folderLauncher.launch(null) }
                                 )
