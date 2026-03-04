@@ -5,7 +5,7 @@ object Constants {
     const val DEEZER_BASE_URL = "https://api.deezer.com/"
     const val SOUNDCLOUD_BASE_URL = "https://api-v2.soundcloud.com/"
     // Replace with your SoundCloud Client ID from https://soundcloud.com/you/apps
-    const val SOUNDCLOUD_CLIENT_ID = "YOUR_SOUNDCLOUD_CLIENT_ID"
+    const val SOUNDCLOUD_CLIENT_ID = "Z3LruYGj7pQUG6fATfYIvlZN6of7VkNH"
 
     // Permissions
     const val PERMISSION_READ_AUDIO = android.Manifest.permission.READ_MEDIA_AUDIO
