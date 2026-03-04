@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class SearchViewModel(
@@ -17,16 +18,17 @@ class SearchViewModel(
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
-    val searchResults: StateFlow<List<SearchResult>> = _searchResults
+    val searchResults: StateFlow<List<SearchResult>> = _searchResults.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
+    // ✨ CAMBIO: Ahora se llama errorMessage
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private var searchJob: Job? = null
 
@@ -35,7 +37,7 @@ class SearchViewModel(
         searchJob?.cancel()
         if (query.isBlank()) {
             _searchResults.value = emptyList()
-            _error.value = null
+            _errorMessage.value = null
             return
         }
         searchJob = viewModelScope.launch {
@@ -48,14 +50,14 @@ class SearchViewModel(
         if (query.isBlank()) return
         viewModelScope.launch {
             _isLoading.value = true
-            _error.value = null
+            _errorMessage.value = null
             repository.searchMusic(query).fold(
                 onSuccess = { results ->
                     _searchResults.value = results
                     _isLoading.value = false
                 },
                 onFailure = { throwable ->
-                    _error.value = throwable.message ?: "Error desconocido"
+                    _errorMessage.value = throwable.message ?: "Error desconocido"
                     _isLoading.value = false
                 }
             )
@@ -66,7 +68,7 @@ class SearchViewModel(
         searchJob?.cancel()
         _searchQuery.value = ""
         _searchResults.value = emptyList()
-        _error.value = null
+        _errorMessage.value = null
     }
 
     class Factory : ViewModelProvider.Factory {

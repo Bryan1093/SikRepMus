@@ -67,7 +67,7 @@ fun MiniPlayer(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Preview 30s • ${song.source}",
+                            text = "Preview 30s • Deezer",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )

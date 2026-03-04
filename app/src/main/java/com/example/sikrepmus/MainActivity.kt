@@ -200,12 +200,7 @@ class MainActivity : ComponentActivity() {
                                     initialFilterValue = libFilterValue
                                 )
                                 1 -> CenterText("Ecualizador Próximamente")
-                                2 -> SearchScreen(
-                                    viewModel = viewModel,
-                                    onSongClick = { viewModel.playSong(it) },
-                                    onMiniPlayerClick = { isNowPlayingVisible = true },
-                                    onPlayPauseClick = { viewModel.togglePlayPause() }
-                                )
+                                2 -> SearchScreen()
                                 3 -> SettingsScreen(
                                     viewModel = viewModel,
                                     onAddFolderClick = { folderLauncher.launch(null) }
