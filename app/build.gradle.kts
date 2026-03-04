@@ -64,7 +64,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     // NewPipe Extractor
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.2")
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.25.2")
 
     // Media3
     implementation(libs.androidx.media3.exoplayer)

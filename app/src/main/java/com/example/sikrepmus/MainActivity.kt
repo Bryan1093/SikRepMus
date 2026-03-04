@@ -35,7 +35,6 @@ import com.example.sikrepmus.ui.screens.*
 import com.example.sikrepmus.presentation.ui.youtube.YouTubeScreen
 import com.example.sikrepmus.presentation.viewmodel.YouTubeViewModel
 import androidx.compose.material.icons.filled.VideoLibrary
-import androidx.compose.runtime.rememberCoroutineScoperememberCoroutineScope
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {

@@ -3,6 +3,7 @@ package com.example.sikrepmus.ui.viewmodel
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -260,16 +261,16 @@ class MusicViewModel(
                 }
 
                 // Actualizar estado (opcional, para mostrar en UI)
-                _currentSong.value = Song(
+                currentSong.value = Song(
                     id = 0,
                     title = title,
                     artist = artist,
                     album = "YouTube",
                     path = url,
                     duration = 0,
-                    albumArt = null
+                    contentUri = Uri.parse(url)
                 )
-                _isPlaying.value = true
+                isPlaying.value = true
 
             } catch (e: Exception) {
                 Log.e("MusicViewModel", "Error playing from URL: ${e.message}", e)
