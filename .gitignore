@@ -13,3 +13,22 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Android build outputs
+app/build/
+app/release/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Generated files
+generated/
+
+# Kotlin
+*.kotlin_module
+
+# Gradle wrapper
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
